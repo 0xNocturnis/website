@@ -1,0 +1,133 @@
+{{ define "main" }}
+  {{ with .Content }}
+    <div class="index-content">{{ . }}</div>
+  {{ end }}
+
+  <div class="posts">
+    {{ if eq .RelPermalink "/writeups/" }}
+      {{/* Group writeups by CTF name */}}
+      {{ $scratch := newScratch }}
+      {{ range .RegularPagesRecursive }}
+        {{ $ctf := path.Base (path.Dir .File.Dir) }}
+        {{ $scratch.Add $ctf (slice .) }}
+      {{ end }}
+
+      {{/* Build a slice of groups with their dates, so we can sort */}}
+      {{ $groups := slice }}
+      {{ range $ctf, $pages := $scratch.Values }}
+        {{ $parent := (index $pages 0).Parent }}
+        {{ $groups = $groups | append (dict "name" $ctf "date" $parent.Date "pages" $pages) }}
+      {{ end }}
+
+      {{/* Sort CTF groups: newest date first */}}
+      {{ $groups = sort $groups "date" "desc" }}
+
+      {{ range $groups }}
+        <details class="writeups-ctf-group">
+          <summary class="writeups-ctf-summary">
+            {{ .name }}
+            {{ with .date }}
+              <time class="writeups-ctf-date">{{ .Format "2006-01-02" }}</time>
+            {{ end }}
+            <span class="writeups-ctf-count">({{ len .pages }})</span>
+          </summary>
+
+          {{/* Sort writeups by the leading number in the filename */}}
+          {{ $sorted := slice }}
+          {{ range .pages }}
+            {{ $base := .File.BaseFileName }}
+            {{ $num := 0 }}
+            {{ with (findRE `^([0-9]+)` $base 1) }}
+              {{ $num = (index . 0) | int }}
+            {{ end }}
+            {{ $sorted = $sorted | append (dict "num" $num "page" .) }}
+          {{ end }}
+          {{ $sorted = sort $sorted "num" "asc" }}
+
+          {{ range $sorted }}
+            {{ $page := .page }}
+            {{ $title := $page.File.BaseFileName }}
+            {{/* Strip the leading "N " from the displayed title */}}
+            {{ $title = replaceRE `^[0-9]+\s+` "" $title }}
+            <article class="post on-list">
+              <h1 class="post-title">{{ $title | markdownify }}</h1>
+              <div class="post-meta">
+                <a class="writeups-view-link" href="{{ $page.Permalink }}">View writeup</a>
+              </div>
+            </article>
+          {{ end }}
+        </details>
+      {{ end }}
+
+    {{ else }}
+      {{/* On /writeups/<ctf>/ : sort by leading number, show CTF date once */}}
+      {{ with .Date }}
+        <p class="writeups-section-date">
+          <time class="post-date">{{ .Format "2006-01-02" }}</time>
+        </p>
+      {{ end }}
+
+      {{ $sorted := slice }}
+      {{ range where .Pages "Kind" "page" }}
+        {{ $base := .File.BaseFileName }}
+        {{ $num := 0 }}
+        {{ with (findRE `^([0-9]+)` $base 1) }}
+          {{ $num = (index . 0) | int }}
+        {{ end }}
+        {{ $sorted = $sorted | append (dict "num" $num "page" .) }}
+      {{ end }}
+      {{ $sorted = sort $sorted "num" "asc" }}
+
+      {{ range $sorted }}
+        {{ $page := .page }}
+        {{ $title := $page.File.BaseFileName }}
+        {{ $title = replaceRE `^[0-9]+\s+` "" $title }}
+        <article class="post on-list">
+          <h1 class="post-title">{{ $title | markdownify }}</h1>
+          <div class="post-meta">
+            <a class="writeups-view-link" href="{{ $page.Permalink }}">View writeup</a>
+          </div>
+        </article>
+      {{ end }}
+    {{ end }}
+  </div>
+
+  <style>
+    .writeups-view-link { color: #fff; text-decoration: underline; }
+    .writeups-view-link:hover { opacity: 0.8; }
+
+    .writeups-ctf-group {
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(128,128,128,0.2);
+    }
+    .writeups-ctf-summary {
+      cursor: pointer;
+      padding: 0.5rem 0;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      opacity: 0.85;
+      list-style: none;
+    }
+    .writeups-ctf-summary::-webkit-details-marker { display: none; }
+    .writeups-ctf-summary::before {
+      content: "▸ ";
+      display: inline-block;
+      transition: transform 0.15s ease;
+    }
+    details[open] > .writeups-ctf-summary::before {
+      transform: rotate(90deg);
+    }
+    .writeups-ctf-date {
+      opacity: 0.6;
+      font-weight: normal;
+      font-size: 0.85em;
+      margin-left: 0.5rem;
+    }
+    .writeups-ctf-count {
+      opacity: 0.6;
+      font-weight: normal;
+      font-size: 0.9em;
+    }
+  </style>
+{{ end }}

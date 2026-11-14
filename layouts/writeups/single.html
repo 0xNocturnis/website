@@ -1,0 +1,10 @@
+{{ define "main" }}
+{{ $title := .File.BaseFileName }}
+{{ $title = replaceRE `^[0-9]+\s+` "" $title }}
+<article class="post">
+  <h1 class="post-title">{{ $title }}</h1>
+  <div class="post-content">
+    {{ .Content }}
+  </div>
+</article>
+{{ end }}
