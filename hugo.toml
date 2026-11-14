@@ -149,3 +149,6 @@ enableGitInfo = true
 [[module.imports.mounts]]
   source = "."
   target = "content/writeups"
+[caches]
+  [caches.images]
+    dir = ':cacheDir/images'
